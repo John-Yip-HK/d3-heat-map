@@ -49,9 +49,11 @@ const colours = [
 
 // Build X scales and axis:
 const xScale = d3.scaleBand().range([0, width]);
+const xAxis = d3.axisBottom(xScale);
 
 // Build Y scales and axis:
 const yScale = d3.scaleBand().domain(months).range([0, height]);
+const yAxis = d3.axisLeft(yScale);
 
 // Build color scale
 const colourScale = d3.scaleQuantize().range(colours);
@@ -76,11 +78,12 @@ d3.json(url, (err, data) => {
     ];
 
     xScale.domain(years);
+    xAxis.tickValues(yearTicks);
 
     const tempVar = monthlyVariance;
 
     d3.select("#title").text("Monthly Global Land-Surface Temperature");
-    d3.select("#subtitle").text(
+    d3.select("#description").text(
       `${minYear} - ${maxYear}: base temperature ${baseTemperature}℃`
     );
 
@@ -89,25 +92,60 @@ d3.json(url, (err, data) => {
       d3.max(tempVar, (d) => d["variance"]),
     ]);
 
+    // Create tooltip
+    const tooltip = d3.select("#container").append("div").attr("id", "tooltip");
+
+    function mouseover(event) {
+      const pointer = d3.pointer(event, d3.select("body").node());
+      const cell = d3.select(this);
+      const variance = (cell.attr("data-temp") - baseTemperature).toFixed(2);
+
+      cell.style("stroke-opacity", 1);
+
+      tooltip
+        .style("display", "block")
+        .style("top", `${pointer[1] - 100}px`)
+        .style("left", `${pointer[0] - 30}px`)
+        .attr("data-year", cell.attr("data-year"));
+
+      tooltip.html(`
+          ${tooltip.attr("data-year")} - ${
+        months[cell.attr("data-month") - 1]
+      }<br />
+          ${cell.attr("data-temp")}℃<br />
+          ${(variance >= 0 ? "+" : "") + variance}℃
+        `);
+    }
+
+    function mouseout() {
+      d3.select(this).style("stroke-opacity", 0);
+      tooltip.style("display", "none").text("");
+    }
+
     // Create rectangles for each of temperature variation record
-    svg
+    const rects = svg
       .selectAll("rect")
       .data(tempVar)
       .enter()
       .append("rect")
+      .attr("class", "cell")
       .attr("width", xScale.bandwidth())
       .attr("height", yScale.bandwidth())
       .attr("x", (d) => xScale(d["year"]))
       .attr("y", (d) => yScale(months[d["month"] - 1]))
-      .style("fill", (d) => colourScale(d["variance"]))
-      .style("stroke", "#000")
-      .style("stroke-opacity", "0");
+      .style("fill", (d) => colourScale(d["variance"]));
 
-    svg
-      .append("g")
-      .attr("transform", `translate(0, ${height})`)
-      .call(d3.axisBottom(xScale).tickValues(yearTicks));
+    // Add data for rectangles
+    rects
+      .attr("data-month", (d) => d["month"])
+      .attr("data-year", (d) => d["year"])
+      .attr("data-temp", (d) => (baseTemperature + d["variance"]).toFixed(2));
 
-    svg.append("g").call(d3.axisLeft(yScale));
+    // Add mouse-related event listeners to cells
+    rects.on("mouseover", mouseover).on("mouseout", mouseout);
+
+    svg.append("g").attr("transform", `translate(0, ${height})`).call(xAxis);
+
+    svg.append("g").call(yAxis);
   })
   .catch((err) => console.log(err.message));
