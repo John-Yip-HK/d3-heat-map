@@ -112,7 +112,7 @@ d3.json(url, (err, data) => {
 
       tooltip.html(`
           ${tooltip.attr("data-year")} - ${
-        months[cell.attr("data-month") - 1]
+        months[cell.attr("data-month")]
       }<br />
           ${cell.attr("data-temp")}℃<br />
           ${(variance >= 0 ? "+" : "") + variance}℃
@@ -139,7 +139,7 @@ d3.json(url, (err, data) => {
 
     // Add data for rectangles
     rects
-      .attr("data-month", (d) => d["month"])
+      .attr("data-month", (d) => d["month"] - 1)
       .attr("data-year", (d) => d["year"])
       .attr("data-temp", (d) => (baseTemperature + d["variance"]).toFixed(2));
 
@@ -147,7 +147,11 @@ d3.json(url, (err, data) => {
     rects.on("mouseover", mouseover).on("mouseout", mouseout);
 
     // Add x-axis and its label
-    svg.append("g").attr("transform", `translate(0, ${height})`).call(xAxis);
+    svg
+      .append("g")
+      .attr("id", "x-axis")
+      .attr("transform", `translate(0, ${height})`)
+      .call(xAxis);
     svg
       .append("text")
       .attr("class", "caption")
@@ -157,20 +161,26 @@ d3.json(url, (err, data) => {
       .text("Months");
 
     // Add y-axis and its label
-    svg.append("g").call(yAxis);
+    svg.append("g").attr("id", "y-axis").call(yAxis);
     svg
       .append("text")
       .attr("class", "caption")
       .attr("x", width / 2)
-      .attr("y", height + padding)
+      .attr("y", height + padding - 10)
       .text("Years");
 
     // Add legend
+    const legendWidth = 400;
+    const legendHeight = 100;
+    const legendVerticalPadding = 10;
+    const legendSidePadding = 30;
+    const squareSide = 30;
+
     const legend = svg
       .append("g")
       .attr("id", "legend")
-      .attr("width", 400)
-      .attr("height", 100)
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
       .attr("transform", "translate(0, " + (height + padding / 2) + ")");
 
     // Create legend rectangles
@@ -179,10 +189,10 @@ d3.json(url, (err, data) => {
       .data(colours)
       .enter()
       .append("rect")
-      .attr("width", 30)
-      .attr("height", 30)
-      .attr("x", (_, i) => i * 30 + 30)
-      .attr("y", 10)
+      .attr("width", squareSide)
+      .attr("height", squareSide)
+      .attr("x", (_, i) => i * squareSide + legendSidePadding)
+      .attr("y", legendVerticalPadding)
       .attr("fill", (d) => d)
       .attr("stroke", "#000");
 
@@ -190,15 +200,15 @@ d3.json(url, (err, data) => {
     const legendScale = d3
       .scaleLinear()
       .domain([lowestVar + baseTemperature, highestVar + baseTemperature])
-      .range([0, 30 * colours.length]);
+      .range([0, squareSide * colours.length]);
 
     // With reference to https://codepen.io/freeCodeCamp/pen/JEXgeY?editors=0010
     const baseValue = lowestVar + baseTemperature;
     const maxValue = highestVar + baseTemperature;
-    const tickValues = [baseValue];
+    const tickValues = [];
     const step = (maxValue - baseValue) / colours.length;
 
-    for (let i = 1; i <= colours.length; ++i) {
+    for (let i = 0; i <= colours.length; ++i) {
       tickValues.push(baseValue + i * step);
     }
 
@@ -207,6 +217,16 @@ d3.json(url, (err, data) => {
       .tickFormat(d3.format(".1f"))
       .tickValues(tickValues);
 
-    legend.append("g").attr("transform", "translate(30, 40)").call(xAxisLegend);
+    legend
+      .append("g")
+      .attr(
+        "transform",
+        "translate(" +
+          legendSidePadding +
+          ", " +
+          (legendVerticalPadding + legendSidePadding) +
+          ")"
+      )
+      .call(xAxisLegend);
   })
   .catch((err) => console.log(err.message));
