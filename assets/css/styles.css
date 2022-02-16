@@ -1,5 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Display:wght@400;500;600;700&display=swap");
+
+body {
+  font-family: "Noto Sans Display", sans-serif;
+}
+
 .title {
   text-align: center;
+}
+
+#title {
+  margin-bottom: 0.5rem;
+}
+
+#description {
+  margin-top: 0.5rem;
 }
 
 body {
@@ -13,13 +27,19 @@ body {
   stroke-opacity: 0;
 }
 
+.caption {
+  font-size: 0.8rem;
+}
+
 #tooltip {
   position: absolute;
   display: none;
+
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
   border: 1px solid rgba(0, 0, 0, 0.8);
   border-radius: 5px;
+
   padding: 10px;
 
   text-align: center;

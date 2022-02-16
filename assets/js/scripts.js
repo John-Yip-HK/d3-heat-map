@@ -14,7 +14,7 @@ const svg = d3
   .attr("width", width + padding * 2)
   .attr("height", height + padding * 2)
   .append("g")
-  .attr("transform", "translate(" + padding + "," + padding + ")");
+  .attr("transform", "translate(" + padding * 2 + ", 0)");
 
 // Labels of y axis
 const months = [
@@ -87,10 +87,12 @@ d3.json(url, (err, data) => {
       `${minYear} - ${maxYear}: base temperature ${baseTemperature}℃`
     );
 
-    colourScale.domain([
+    const [lowestVar, highestVar] = [
       d3.min(tempVar, (d) => d["variance"]),
       d3.max(tempVar, (d) => d["variance"]),
-    ]);
+    ];
+
+    colourScale.domain([lowestVar, highestVar]);
 
     // Create tooltip
     const tooltip = d3.select("#container").append("div").attr("id", "tooltip");
@@ -105,7 +107,7 @@ d3.json(url, (err, data) => {
       tooltip
         .style("display", "block")
         .style("top", `${pointer[1] - 100}px`)
-        .style("left", `${pointer[0] - 30}px`)
+        .style("left", `${pointer[0] - 40}px`)
         .attr("data-year", cell.attr("data-year"));
 
       tooltip.html(`
@@ -144,8 +146,67 @@ d3.json(url, (err, data) => {
     // Add mouse-related event listeners to cells
     rects.on("mouseover", mouseover).on("mouseout", mouseout);
 
+    // Add x-axis and its label
     svg.append("g").attr("transform", `translate(0, ${height})`).call(xAxis);
+    svg
+      .append("text")
+      .attr("class", "caption")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -(height / 2))
+      .attr("y", -padding)
+      .text("Months");
 
+    // Add y-axis and its label
     svg.append("g").call(yAxis);
+    svg
+      .append("text")
+      .attr("class", "caption")
+      .attr("x", width / 2)
+      .attr("y", height + padding)
+      .text("Years");
+
+    // Add legend
+    const legend = svg
+      .append("g")
+      .attr("id", "legend")
+      .attr("width", 400)
+      .attr("height", 100)
+      .attr("transform", "translate(0, " + (height + padding / 2) + ")");
+
+    // Create legend rectangles
+    legend
+      .selectAll("rect")
+      .data(colours)
+      .enter()
+      .append("rect")
+      .attr("width", 30)
+      .attr("height", 30)
+      .attr("x", (_, i) => i * 30 + 30)
+      .attr("y", 10)
+      .attr("fill", (d) => d)
+      .attr("stroke", "#000");
+
+    // Create x-axis for rectangles
+    const legendScale = d3
+      .scaleLinear()
+      .domain([lowestVar + baseTemperature, highestVar + baseTemperature])
+      .range([0, 30 * colours.length]);
+
+    // With reference to https://codepen.io/freeCodeCamp/pen/JEXgeY?editors=0010
+    const baseValue = lowestVar + baseTemperature;
+    const maxValue = highestVar + baseTemperature;
+    const tickValues = [baseValue];
+    const step = (maxValue - baseValue) / colours.length;
+
+    for (let i = 1; i <= colours.length; ++i) {
+      tickValues.push(baseValue + i * step);
+    }
+
+    const xAxisLegend = d3
+      .axisBottom(legendScale)
+      .tickFormat(d3.format(".1f"))
+      .tickValues(tickValues);
+
+    legend.append("g").attr("transform", "translate(30, 40)").call(xAxisLegend);
   })
   .catch((err) => console.log(err.message));
